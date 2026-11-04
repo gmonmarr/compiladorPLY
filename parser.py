@@ -7,6 +7,8 @@ from lexer import tokens # tokens del otro archivo
 # reglas gramaticales
 # todos los tokens van en mayúsculas
 
+start = 'PROGRAMA' # regla inicial
+
 def p_ASSIGN(p):
     '''
         ASSIGN : ID = EXPRESSION ;
@@ -19,7 +21,7 @@ def p_BODY(p):
     '''
     # cero o más statements
 
-def body_STATEMENTS(p):
+def p_body_STATEMENTS(p):
     '''
         body_STATEMENTS : body_STATEMENTS STATEMENT
                         | empty
@@ -126,9 +128,9 @@ def p_vars_FUNCS(p):
                    | empty
     '''
 
-def p_PRINT(p):
+def p_print_statement(p):
     '''
-        PRINT : PRINT ( printable_PRINT ) ;
+        print_statement : PRINT ( printable_PRINT ) ;
     '''
 
 def p_printable_PRINT(p):
@@ -156,9 +158,9 @@ def p_funcs_PROGRAMA(p):
                        | empty
     '''
 
-def p_READ(p):
+def p_read_statement(p):
     '''
-        READ : READ ( ID ) ;
+        read_statement : READ ( ID ) ;
     '''
 
 def p_STATEMENT(p):
@@ -166,9 +168,9 @@ def p_STATEMENT(p):
         STATEMENT : ASSIGN
                   | CONDITION
                   | CYCLE
-                  | PRINT
-                  | READ
-                  | RETURN
+                  | print_statement
+                  | read_statement
+                  | return_statement
                   | [ mult_STATEMENT ]
     '''
 
@@ -178,9 +180,9 @@ def p_mult_STATEMENT(p):
                        | empty
     '''
 
-def p_RETURN(p):
+def p_return_statement(p):
     '''
-        RETURN : RETURN EXPRESION ;
+        return_statement : RETURN EXPRESION ;
     '''
 
 def p_TERMINO(p):
@@ -218,3 +220,11 @@ def p_empty(p):
         empty :
     '''
     pass
+
+def p_error(p):
+    if p:
+        print(f"Error de sintaxis en la línea {p.lineno}: token inesperado '{p.value}'")
+    else:
+        print("Error de sintaxis: fin de archivo inesperado")
+
+parser = yacc.yacc()

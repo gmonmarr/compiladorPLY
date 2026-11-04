@@ -20,6 +20,8 @@ reserved = {
     'void': 'VOID',
     'while': 'WHILE',
     'var': 'VAR',
+    'int': 'INT',
+    'float': 'FLOAT',
 }
 
 # tokens que se van a reconocer
@@ -71,6 +73,10 @@ def t_NEQ(t):
 def t_error(t):
     print(f"Caracter no reconocido: '{t.value[0]}'")
     t.lexer.skip(1)
+
+def t_newline(t):
+    r'\n+'
+    t.lexer.lineno += len(t.value)
 
 # def t_newline(t):
 #     r'\n+'
