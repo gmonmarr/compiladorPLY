@@ -29,7 +29,8 @@ tokens = (
     'CTE_INT', # constante int
     'CTE_STRING', # constante string
     'NEQ', # operador desigual
-) + tuple(reserved.values())
+    # 'NEWLINE', # salto de línea, todavía no sé si me importará newline en el lenguaje
+) + tuple(reserved.values()) + tuple(literals) 
 
 # ignorar espacios tabuladores y enters
 t_ignore = " \t\r"
@@ -43,21 +44,21 @@ t_ignore = " \t\r"
 # declaración de tokens con intervenciones
 def t_ID(t):
     r'[a-zA-Z]+[a-zA-Z0-9]*_?[a-zA-Z0-9]*'
-    # aquí alguna acción
-    return t
-
-def t_CTE_INT(t):
-    r'\d+'
-    # aquí alguna acción
+    t.type = reserved.get(t.value,'ID')    # Check for reserved words
     return t
 
 def t_CTE_FLOAT(t):
     r'\d+\.\d+'
-    # aquí alguna acción
+    t.value = float(t.value)
+    return t
+
+def t_CTE_INT(t):
+    r'\d+'
+    t.value = int(t.value)
     return t
 
 def t_CTE_STRING(t):
-    r'\".*?\"'
+    r'\".*?\"' # espera que haya un string entre comillas dobles
     # aquí alguna acción
     return t
 
@@ -65,6 +66,24 @@ def t_NEQ(t):
     r'!='
     # aquí alguna acción
     return t
+
+# revisar errores de tokens
+def t_error(t):
+    print(f"Caracter no reconocido: '{t.value[0]}'")
+    t.lexer.skip(1)
+
+# def t_newline(t):
+#     r'\n+'
+#     t.lexer.lineno += len(t.value)
+
+# EOF handling rule (saber cuándo termina el input)
+# def t_eof(t):
+#     # Get more input (Example)
+#     more = input('... ')
+#     if more:
+#         self.lexer.input(more)
+#         return self.lexer.token()
+#     return None
 
 if __name__ == "__main__":
     # Test it out
