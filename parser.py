@@ -2,7 +2,7 @@
 # parser usando ply.yacc
 
 import ply.yacc as yacc
-from lexer import tokens # tokens del otro archivo
+from lexer import tokens, literals # tokens del otro archivo
 
 # reglas gramaticales
 # todos los tokens van en mayúsculas
@@ -11,7 +11,7 @@ start = 'PROGRAMA' # regla inicial
 
 def p_ASSIGN(p):
     '''
-        ASSIGN : ID = EXPRESSION ;
+        ASSIGN : ID = EXPRESION ;
     '''
     # aquí uso '=' y ';' porque es un literal token
 
@@ -32,7 +32,7 @@ def p_body_STATEMENTS(p):
 
 def p_CONDITION(p):
     '''
-        CONDITION : IF ( EXPRESSION ) else_CONDITION ;
+        CONDITION : IF ( EXPRESION ) else_CONDITION ;
     '''
 
 def p_else_CONDITION(p):
@@ -49,7 +49,7 @@ def p_CTE(p):
 
 def p_CYCLE(p):
     '''
-        CYCLE : WHILE ( EXPRESSION ) DO STATEMENT ;
+        CYCLE : WHILE ( EXPRESION ) DO STATEMENT ;
     '''
 
 def p_EXP(p):

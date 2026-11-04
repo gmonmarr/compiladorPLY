@@ -31,17 +31,11 @@ tokens = (
     'CTE_INT', # constante int
     'CTE_STRING', # constante string
     'NEQ', # operador desigual
-    # 'NEWLINE', # salto de línea, todavía no sé si me importará newline en el lenguaje
-) + tuple(reserved.values()) + tuple(literals) 
+    'NEWLINE', # salto de línea, útil para contar líneas y reportar errores
+) + tuple(reserved.values())
 
 # ignorar espacios tabuladores y enters
 t_ignore = " \t\r"
-
-# declaración de tokens simples
-# t_ID = r'[a-zA-Z]+[a-zA-Z0-9]*_?[a-zA-Z0-9]*' # alphabet+ anum* _? anum*
-# t_CTE_INT = r'\d+'
-# t_CTE_FLOAT = r'\d+\.\d+'
-# t_CTE_STRING = r'\".*?\"'
 
 # declaración de tokens con intervenciones
 def t_ID(t):
