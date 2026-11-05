@@ -168,6 +168,7 @@ def p_STATEMENT(p):
         STATEMENT : ASSIGN
                   | CONDITION
                   | CYCLE
+                  | FCALL
                   | print_statement
                   | read_statement
                   | return_statement

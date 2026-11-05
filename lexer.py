@@ -43,38 +43,40 @@ def t_ID(t):
     t.type = reserved.get(t.value,'ID')    # Check for reserved words
     return t
 
+# reconocer flotantes
 def t_CTE_FLOAT(t):
     r'\d+\.\d+'
     t.value = float(t.value)
     return t
 
+# reconocer enteros
 def t_CTE_INT(t):
     r'\d+'
     t.value = int(t.value)
     return t
 
+# reconocer strings entre comillas dobles
 def t_CTE_STRING(t):
     r'\".*?\"' # espera que haya un string entre comillas dobles
+    # "{cualquier caracter si es que hay}"
     # aquí alguna acción
     return t
 
+# token desigualdad
 def t_NEQ(t):
     r'!='
     # aquí alguna acción
     return t
 
-# revisar errores de tokens
+# reportar errores de tokens
 def t_error(t):
     print(f"Caracter no reconocido: '{t.value[0]}'")
     t.lexer.skip(1)
 
+# contar líneas
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
-
-# def t_newline(t):
-#     r'\n+'
-#     t.lexer.lineno += len(t.value)
 
 # EOF handling rule (saber cuándo termina el input)
 # def t_eof(t):
