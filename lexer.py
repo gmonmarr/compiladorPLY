@@ -31,7 +31,7 @@ tokens = (
     'CTE_INT', # constante int
     'CTE_STRING', # constante string
     'NEQ', # operador desigual
-    'NEWLINE', # salto de línea, útil para contar líneas y reportar errores
+    # 'NEWLINE', # salto de línea, útil para contar líneas y reportar errores (no es necesario para el parser)
 ) + tuple(reserved.values())
 
 # ignorar espacios tabuladores y enters
@@ -70,7 +70,7 @@ def t_NEQ(t):
 
 # reportar errores de tokens
 def t_error(t):
-    print(f"Caracter no reconocido: '{t.value[0]}'")
+    print(f"Caracter no reconocido: '{t.value[0]}' en la línea {t.lineno}")
     t.lexer.skip(1)
 
 # contar líneas
@@ -90,7 +90,7 @@ def t_newline(t):
 if __name__ == "__main__":
     # Test it out
     data = '''
-    3 + 4 * 10
+    3 + 4 * 10 \n a_ap \n _ap
     + -20 *2
     '''
 
