@@ -59,31 +59,40 @@ class LexerTests(unittest.TestCase):
         self.assertEqual(actual, [("CTE_STRING", '"hello"')])
 
     def test_inequality_and_single_character_literals(self):
-        actual = self.tokenize("!= + -")
+        actual = self.tokenize("!= - , ; : ( ) { } [ ] * / + = < >")
 
         # Literal characters are returned using the character as both type and value.
         self.assertEqual(
             actual,
             [
                 ("NEQ", "!="),
-                ("+", "+"),
-                ("-", "-"),
-            ],
+            ] + [(char, char) for char in "-,;:(){}[]*/+=<>"]
         )
 
     def test_newline_updates_token_line_number(self):
         scanner = lex.lex(module=lexer_rules)
         scanner.lineno = 1
-        scanner.input("first\nsecond")
+        scanner.input("first\nsecond\n\nth_ird\n_fourth")
 
-        actual = [(token.type, token.value, token.lineno) for token in scanner]
+        output = StringIO()
+        actual = []
+
+        with redirect_stdout(output):
+            for token in scanner:
+                actual.append((token.type, token.value, token.lineno))
 
         self.assertEqual(
             actual,
             [
                 ("ID", "first", 1),
                 ("ID", "second", 2),
+                ("ID", "th_ird", 4),
+                ("ID", "fourth", 5),
             ],
+        )
+        self.assertIn(
+            "Caracter no reconocido: '_' en la línea 5",
+            output.getvalue(),
         )
 
     def test_invalid_character_is_reported_and_skipped(self):
