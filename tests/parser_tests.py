@@ -88,6 +88,12 @@ class ParserTests(unittest.TestCase):
     def test_accepts_numeric_promotion_in_assignment(self):
         self.parse_source("program demo; var x: float; main { x = 1; } end")
 
+    def test_accepts_string_variable_assignment_and_print(self):
+        source = 'program demo; var message: string; main { message = "hello"; print(message); } end'
+        self.parse_source(source)
+
+        self.assertEqual(semantic.get_var_type("message"), "string")
+
     def test_registers_function_parameters_and_local_variables(self):
         source = (
             "program demo; var shared: int; "

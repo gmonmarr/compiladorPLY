@@ -51,8 +51,14 @@ def p_CTE(p):
     '''
         CTE : CTE_INT
             | CTE_FLOAT
+            | CTE_STRING
     '''
-    p[0] = 'int' if p.slice[1].type == 'CTE_INT' else 'float'
+    if p.slice[1].type == 'CTE_INT':
+        p[0] = 'int'
+    elif p.slice[1].type == 'CTE_FLOAT':
+        p[0] = 'float'
+    else:
+        p[0] = 'string'
 
 
 def p_CYCLE(p):
@@ -121,59 +127,40 @@ def p_FACTOR(p):
     '''
         FACTOR : FCALL
                | '(' EXPRESION ')'
-               | left_FACTOR ID
-               | left_FACTOR CTE
+               | ID
+               | '+' ID
+               | '-' ID
+               | CTE
+               | '+' CTE
+               | '-' CTE
     '''
-    if len(p) == 2:
+    if len(p) == 2 and p.slice[1].type == 'FCALL':
         p[0] = p[1]
-    elif p.slice[1].type == 'FCALL':
+    elif len(p) == 4:
+        p[0] = p[2]
+    elif len(p) == 2 and p.slice[1].type == 'ID':
+        p[0] = obtener_tipo_variable(p[1])
+    elif len(p) == 2:
         p[0] = p[1]
     elif p.slice[2].type == 'ID':
         p[0] = obtener_tipo_variable(p[2])
-        if p[1] == '-' and p[0] not in ('int', 'float'):
-            raise Exception(f"Error semántico: signo unario inválido para {p[0]}")
-    elif p.slice[2].type == 'CTE':
-        p[0] = p[2]
-        if p[1] == '-' and p[0] not in ('int', 'float'):
-            raise Exception(f"Error semántico: signo unario inválido para {p[0]}")
     else:
         p[0] = p[2]
-
-
-def p_left_FACTOR(p):
-    '''
-        left_FACTOR : '-'
-                    | '+'
-                    | empty
-    '''
-    p[0] = p[1] if len(p) == 2 else None
+    if len(p) == 3 and p[1] in ('+', '-') and p[0] not in ('int', 'float'):
+        raise Exception(f"Error semántico: signo unario inválido para {p[0]}")
 
 
 def p_FUNCS(p):
     '''
-        FUNCS : LEFT_FUNCS ID iniciar_funcion '(' id_FUNCS ')' registrar_parametros '[' vars_FUNCS ']' BODY ';' finalizar_funcion
+        FUNCS : LEFT_FUNCS ID iniciar_funcion '(' id_FUNCS ')' '[' vars_FUNCS ']' BODY ';'
     '''
-
+    finalizar_funcion()
 
 def p_iniciar_funcion(p):
     '''
         iniciar_funcion : empty
     '''
     iniciar_funcion(p[-1], p[-2])
-
-
-def p_registrar_parametros(p):
-    '''
-        registrar_parametros : empty
-    '''
-    registrar_parametros(p[-2])
-
-
-def p_finalizar_funcion(p):
-    '''
-        finalizar_funcion : empty
-    '''
-    finalizar_funcion()
 
 
 def p_LEFT_FUNCS(p):
@@ -189,7 +176,9 @@ def p_id_FUNCS(p):
         id_FUNCS : ids_FUNCS
                  | empty
     '''
-    p[0] = p[1] if len(p) == 2 else []
+    parametros = p[1] if p[1] is not None else []
+    registrar_parametros(parametros)
+    p[0] = parametros
 
 
 def p_ids_FUNCS(p):
@@ -219,9 +208,7 @@ def p_print_statement(p):
 def p_printable_PRINT(p):
     '''
         printable_PRINT : EXPRESION
-                        | CTE_STRING
                         | printable_PRINT ',' EXPRESION
-                        | printable_PRINT ',' CTE_STRING
     '''
 
 
@@ -342,8 +329,14 @@ def p_TYPE(p):
     '''
         TYPE : INT
              | FLOAT
+             | STRING
     '''
-    p[0] = 'int' if p.slice[1].type == 'INT' else 'float'
+    if p.slice[1].type == 'INT':
+        p[0] = 'int'
+    elif p.slice[1].type == 'FLOAT':
+        p[0] = 'float'
+    else:
+        p[0] = 'string'
 
 
 def p_empty(p):
