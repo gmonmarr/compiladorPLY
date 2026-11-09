@@ -8,10 +8,13 @@ literals = ' - , ; : ( ) { } [ ] * / + = < > '.split() # .split para quitar los 
 
 # palabras reservadas que no pueden ser usadas como IDs
 reserved = {
+    # palabras reservadas para control de flujo
+    'if': 'IF',
     'do': 'DO',
     'else': 'ELSE',
     'end': 'END',
-    'if': 'IF',
+
+    # palabras reservadas para funciones
     'main': 'MAIN',
     'print': 'PRINT',
     'program': 'PROGRAM',
@@ -19,9 +22,21 @@ reserved = {
     'return': 'RETURN',
     'void': 'VOID',
     'while': 'WHILE',
+    
+    # tipos de datos
     'var': 'VAR',
     'int': 'INT',
     'float': 'FLOAT',
+    'string': 'STRING',
+    # 'bool': 'BOOL',
+    
+    # operadores lógicos
+    # 'and': 'AND',
+    # '&&': 'AND',
+    # 'or': 'OR',
+    # '||': 'OR',
+    # 'not': 'NOT',
+    # '!': 'NOT'
 }
 
 # tokens que se van a reconocer

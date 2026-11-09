@@ -4,7 +4,9 @@
 import ply.yacc as yacc
 from lexer import tokens, literals # tokens del otro archivo
 
-# reglas gramaticales
+from semantic import *
+
+# aquí las reglas gramaticales
 # todos los tokens van en mayúsculas
 
 start = 'PROGRAMA' # regla inicial
@@ -142,15 +144,36 @@ def p_printable_PRINT(p):
                         | printable_PRINT ',' CTE_STRING
     '''
 
+# declaración de una función programa
 def p_programa(p):
     '''
         PROGRAMA : PROGRAM ID ';' vars_PROGRAMA funcs_PROGRAMA MAIN BODY END
     '''
+    # agregar el id-name a tabla de funciones
+    add_function(p[2], 'void', []) # el main no tiene parámetros
 
 def p_vars_PROGRAMA(p):
     '''
         vars_PROGRAMA : VARS
                       | empty
+    '''
+    add_function_variable('main', p[2], get_var_type(p[2])) # agregar variable a la función main
+
+def p_VARS(p):
+    '''
+        VARS : VAR right_VARS
+    '''
+
+def p_ids_VARS(p):
+    '''
+        ids_VARS : ID 
+                 | ID ',' ids_VARS
+    '''
+
+def p_right_VARS(p):
+    '''
+        right_VARS : ids_VARS ':' TYPE ';'
+                   | ids_VARS ':' TYPE ';' right_VARS
     '''
 
 def p_funcs_PROGRAMA(p):
@@ -198,23 +221,6 @@ def p_TYPE(p):
     '''
         TYPE : INT
              | FLOAT
-    '''
-
-def p_VARS(p):
-    '''
-        VARS : VAR right_VARS
-    '''
-
-def p_ids_VARS(p):
-    '''
-        ids_VARS : ID 
-                 | ID ',' ids_VARS
-    '''
-
-def p_right_VARS(p):
-    '''
-        right_VARS : ids_VARS ':' TYPE ';'
-                   | ids_VARS ':' TYPE ';' right_VARS
     '''
 
 def p_empty(p):
