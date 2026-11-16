@@ -3,6 +3,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 
 import ply.lex as lex
+import cuadruplos as q
 import lexer as lexer_rules
 import parser as grammar
 import semantic
@@ -126,6 +127,72 @@ class ParserTests(unittest.TestCase):
         self.parse_source("program demo; var x: int; main { x = 1 + 2 * 3; } end")
 
         self.assertEqual(semantic.tabla_temporales, {"t1": "int", "t2": "int"})
+
+    def test_emits_arithmetic_quadruples_in_precedence_order(self):
+        self.parse_source("program demo; var x: int; main { x = 1 + 2 * 3; } end")
+
+        self.assertEqual(q.cuadruplos, [
+            ("*", 2, 3, "t1"),
+            ("+", 1, "t1", "t2"),
+            ("=", "t2", None, "x"),
+        ])
+
+    def test_emits_parenthesized_and_left_associative_operations(self):
+        self.parse_source("program demo; main { print(8 * (4 + 2) / 3); } end")
+
+        self.assertEqual(q.cuadruplos, [
+            ("+", 4, 2, "t1"),
+            ("*", 8, "t1", "t2"),
+            ("/", "t2", 3, "t3"),
+            ("PRINT", "t3", None, None),
+        ])
+        self.assertEqual(q.pila_operadores, [])
+        self.assertEqual(q.pila_operandos, [])
+        self.assertEqual(q.pila_tipo, [])
+
+    def test_emits_relational_quadruples(self):
+        for operador in ("<", ">", "!="):
+            with self.subTest(operador=operador):
+                self.parse_source(f"program demo; main {{ print(1 {operador} 2); }} end")
+
+                self.assertEqual(q.cuadruplos, [
+                    (operador, 1, 2, "t1"),
+                    ("PRINT", "t1", None, None),
+                ])
+                self.assertEqual(semantic.get_temp_type("t1"), "bool")
+
+    def test_emits_linear_statement_quadruples(self):
+        self.parse_source(
+            'program demo; var x: int; main { read(x); x = 4; print(x, "done"); } end'
+        )
+
+        self.assertEqual(q.cuadruplos, [
+            ("READ", "x", None, None),
+            ("=", 4, None, "x"),
+            ("PRINT", "x", None, None),
+            ("PRINT", '"done"', None, None),
+        ])
+
+    def test_emits_unary_negation_as_multiplication(self):
+        self.parse_source("program demo; var x: int; main { x = -3; } end")
+
+        self.assertEqual(q.cuadruplos, [
+            ("*", 3, -1, "t1"),
+            ("=", "t1", None, "x"),
+        ])
+
+    def test_resets_quadruples_and_temporaries_between_programs(self):
+        self.parse_source("program first; main { print(1 + 2); } end")
+        self.parse_source("program second; main { print(3 + 4); } end")
+
+        self.assertEqual(q.cuadruplos, [("+", 3, 4, "t1"), ("PRINT", "t1", None, None)])
+        self.assertEqual(semantic.tabla_temporales, {"t1": "int"})
+
+    def test_rejects_incompatible_arithmetic_types(self):
+        with self.assertRaisesRegex(Exception, "operación inválida"):
+            self.parse_source('program demo; main { print("hello" + 1); } end')
+
+        self.assertEqual(q.cuadruplos, [])
 
 
 if __name__ == "__main__":

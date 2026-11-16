@@ -3,6 +3,7 @@
 
 import ply.yacc as yacc
 from lexer import tokens, literals
+import cuadruplos as q
 import semantic
 from semantic import *
 
@@ -13,13 +14,17 @@ def p_ASSIGN(p):
     '''
         ASSIGN : ID '=' EXPRESION ';'
     '''
+    # Sacar el operando de la expresión y el tipo de la variable
+    valor, tipo_valor = q.pop_operando()
     tipo_destino = obtener_tipo_variable(p[1])
-    tipo_resultado = oraculo_cubo(tipo_destino, p[3], '=')
+    # comprueba compatibilidad
+    tipo_resultado = oraculo_cubo(tipo_destino, tipo_valor, '=')
     if tipo_resultado != tipo_destino:
         raise Exception(
-            f"Error semántico: no se puede asignar {p[3]} a {tipo_destino} en '{p[1]}'"
+            f"Error semántico: no se puede asignar {tipo_valor} a {tipo_destino} en '{p[1]}'"
         )
-
+    # meter el cuádruplo de asignación
+    q.push_cuadruplo('=', valor, None, p[1])
 
 def p_BODY(p):
     '''
@@ -46,19 +51,19 @@ def p_else_CONDITION(p):
                        | empty
     '''
 
-
 def p_CTE(p):
     '''
         CTE : CTE_INT
             | CTE_FLOAT
-            | CTE_STRING
     '''
     if p.slice[1].type == 'CTE_INT':
-        p[0] = 'int'
+        tipo = 'int'
     elif p.slice[1].type == 'CTE_FLOAT':
-        p[0] = 'float'
+        tipo = 'float'
     else:
-        p[0] = 'string'
+        raise Exception("Error semántico: constante no reconocida")
+
+    q.push_operando(p[1], tipo)
 
 
 def p_CYCLE(p):
@@ -69,40 +74,36 @@ def p_CYCLE(p):
 
 def p_EXP(p):
     '''
-        EXP : TERMINO terminos_EXP
+        EXP : TERMINO
+            | EXP operador_aditivo TERMINO
     '''
-    tipo = p[1]
-    for operador, tipo_derecho in p[2]:
-        tipo = oraculo_cubo(tipo, tipo_derecho, operador)
-        crear_temporal(tipo)
-    p[0] = tipo
-
-
-def p_terminos_EXP(p):
-    '''
-        terminos_EXP : '+' TERMINO terminos_EXP
-                     | '-' TERMINO terminos_EXP
-                     | empty
-    '''
+    # resolver la expresión si hay un operador aditivo
     if len(p) == 4:
-        p[0] = [(p[1], p[2])] + p[3]
-    else:
-        p[0] = []
+        q.resolver_expresion(('+', '-'))
+
+
+def p_operador_aditivo(p):
+    '''
+        operador_aditivo : '+'
+                         | '-'
+    '''
+    q.push_operador(p[1])
 
 
 def p_EXPRESION(p):
     '''
         EXPRESION : EXP
-                  | EXP '>' EXP
-                  | EXP '<' EXP
-                  | EXP NEQ EXP
+                  | EXP operador_relacional EXP
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-        return
-    operador = '!=' if p.slice[2].type == 'NEQ' else p[2]
-    p[0] = oraculo_cubo(p[1], p[3], operador)
-    crear_temporal(p[0])
+
+
+def p_operador_relacional(p):
+    '''
+        operador_relacional : '<'
+                            | '>'
+                            | NEQ
+    '''
+    q.push_operador(p[1])
 
 
 def p_FCALL(p):
@@ -117,16 +118,13 @@ def p_expresiones_FCALL(p):
         expresiones_FCALL : EXPRESION
                           | EXPRESION ',' expresiones_FCALL
     '''
-    if len(p) == 2:
-        p[0] = [p[1]]
-    else:
-        p[0] = [p[1]] + p[3]
+    q.pop_operando()
 
 
 def p_FACTOR(p):
     '''
         FACTOR : FCALL
-               | '(' EXPRESION ')'
+               | '(' fondo_falso EXPRESION ')'
                | ID
                | '+' ID
                | '-' ID
@@ -134,32 +132,53 @@ def p_FACTOR(p):
                | '+' CTE
                | '-' CTE
     '''
-    if len(p) == 2 and p.slice[1].type == 'FCALL':
-        p[0] = p[1]
-    elif len(p) == 4:
-        p[0] = p[2]
-    elif len(p) == 2 and p.slice[1].type == 'ID':
-        p[0] = obtener_tipo_variable(p[1])
-    elif len(p) == 2:
-        p[0] = p[1]
-    elif p.slice[2].type == 'ID':
-        p[0] = obtener_tipo_variable(p[2])
+    # len 5 es para el caso de los parentesis
+    if len(p) == 5:
+        # pop el fondo falso más reciente
+        q.pop_operador()
+        return
+    
+    # revisar si el último token es un ID o una constante
+    pos = len(p) - 1
+    if p.slice[pos].type == 'ID':
+        # si es un ID, obtener su tipo de la tabla de símbolos
+        valor, tipo = p[pos], obtener_tipo_variable(p[pos])
     else:
-        p[0] = p[2]
-    if len(p) == 3 and p[1] in ('+', '-') and p[0] not in ('int', 'float'):
-        raise Exception(f"Error semántico: signo unario inválido para {p[0]}")
+        # si es una constante, obtener su tipo y valor
+        valor, tipo = p[pos]
+
+    # revisar que ID y CTE sean del tipo correcto
+    if pos == 2 and tipo not in ('int', 'float'):
+        raise Exception(f"Error semántico: signo unario inválido para {tipo}")
+    
+    # Push el valor y tipo a la pila de operandos y tipos
+    q.push_operando(valor, tipo)
+
+    # Resolver la expresión si hay un negativo
+    if pos == 2 and p[1] == '-':
+        q.push_operando(-1, 'int')
+        q.push_operador('*')
+        q.resolver_expresion(('*',))
+
+
+def p_fondo_falso(p):
+    'fondo_falso :'
+    # crear un fondo falso para los paréntesis
+    q.push_operador(False)
 
 
 def p_FUNCS(p):
     '''
         FUNCS : LEFT_FUNCS ID iniciar_funcion '(' id_FUNCS ')' '[' vars_FUNCS ']' BODY ';'
     '''
+    # Finalizar la función y limpiar las pilas
     finalizar_funcion()
 
 def p_iniciar_funcion(p):
     '''
         iniciar_funcion : empty
     '''
+    # Iniciar la función en el directorio de funciones
     iniciar_funcion(p[-1], p[-2])
 
 
@@ -168,6 +187,7 @@ def p_LEFT_FUNCS(p):
         LEFT_FUNCS : VOID
                    | TYPE
     '''
+    # Pasar el tipo de retorno a la función iniciar_funcion
     p[0] = 'void' if p.slice[1].type == 'VOID' else p[1]
 
 
@@ -210,6 +230,9 @@ def p_printable_PRINT(p):
         printable_PRINT : EXPRESION
                         | printable_PRINT ',' EXPRESION
     '''
+    # Sacar el operando de la expresión y generar el cuádruplo de impresión
+    valor, _ = q.pop_operando()
+    q.push_cuadruplo('PRINT', valor, None, None)
 
 
 def p_programa(p):
@@ -276,7 +299,10 @@ def p_read_statement(p):
     '''
         read_statement : READ '(' ID ')' ';'
     '''
+    # revisar que la variable exista y obtener su tipo
     obtener_tipo_variable(p[3])
+    # generar el cuádruplo de lectura
+    q.push_cuadruplo('READ', p[3], None, None)
 
 
 def p_STATEMENT(p):
@@ -303,26 +329,34 @@ def p_return_statement(p):
     '''
         return_statement : RETURN EXPRESION ';'
     '''
+    # Sacar el operando de la expresión y su tipo
+    _, tipo = q.pop_operando()
     if semantic.funcion_actual is None:
         raise Exception("Error semántico: return solo se permite dentro de una función")
     tipo_retorno = get_function_return_type(semantic.funcion_actual)
-    if p[2] != tipo_retorno:
+    if tipo != tipo_retorno:
         raise Exception(
-            f"Error semántico: la función '{semantic.funcion_actual}' debe retornar {tipo_retorno}, no {p[2]}"
+            f"Error semántico: la función '{semantic.funcion_actual}' debe retornar {tipo_retorno}, no {tipo}"
         )
 
 
 def p_TERMINO(p):
     '''
         TERMINO : FACTOR
-                | FACTOR '*' TERMINO
-                | FACTOR '/' TERMINO
+                | TERMINO operador_multiplicativo FACTOR
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = oraculo_cubo(p[1], p[3], p[2])
-        crear_temporal(p[0])
+    # resolver la expresión si hay un operador multiplicativo
+    if len(p) == 4:
+        q.resolver_expresion(('*', '/'))
+
+
+def p_operador_multiplicativo(p):
+    '''
+        operador_multiplicativo : '*'
+                                | '/'
+    '''
+    # Push el operador a la pila de operadores
+    q.push_operador(p[1])
 
 
 def p_TYPE(p):
