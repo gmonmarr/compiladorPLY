@@ -1,5 +1,4 @@
 # cuadruplos.py
-import semantic
 
 # queue (Fila) (FIFO)
 cuadruplos = []
@@ -38,7 +37,7 @@ def push_cuadruplo(operador, operando1, operando2, resultado):
 ### OPERANDOS
 # push operando (poner al final)
 def push_operando(operando, tipo):
-    pila_operandos.append(operando, tipo)
+    pila_operandos.append((operando, tipo))
 
 # pop operando (sacar el último)
 def pop_operando():

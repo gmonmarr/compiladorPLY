@@ -148,7 +148,6 @@ class ParserTests(unittest.TestCase):
         ])
         self.assertEqual(q.pila_operadores, [])
         self.assertEqual(q.pila_operandos, [])
-        self.assertEqual(q.pila_tipo, [])
 
     def test_emits_relational_quadruples(self):
         for operador in ("<", ">", "!="):

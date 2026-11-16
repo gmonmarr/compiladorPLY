@@ -55,13 +55,14 @@ def p_CTE(p):
     '''
         CTE : CTE_INT
             | CTE_FLOAT
+            | CTE_STRING
     '''
     if p.slice[1].type == 'CTE_INT':
         tipo = 'int'
     elif p.slice[1].type == 'CTE_FLOAT':
         tipo = 'float'
     else:
-        raise Exception("Error semántico: constante no reconocida")
+        tipo = 'string'
 
     q.push_operando(p[1], tipo)
 
@@ -95,6 +96,8 @@ def p_EXPRESION(p):
         EXPRESION : EXP
                   | EXP operador_relacional EXP
     '''
+    if len(p) == 4:
+        q.resolver_expresion(('<', '>', '!='))
 
 
 def p_operador_relacional(p):
@@ -137,22 +140,18 @@ def p_FACTOR(p):
         # pop el fondo falso más reciente
         q.pop_operador()
         return
-    
-    # revisar si el último token es un ID o una constante
+        
+    # revisar si el último token es un ID
     pos = len(p) - 1
     if p.slice[pos].type == 'ID':
         # si es un ID, obtener su tipo de la tabla de símbolos
-        valor, tipo = p[pos], obtener_tipo_variable(p[pos])
-    else:
-        # si es una constante, obtener su tipo y valor
-        valor, tipo = p[pos]
+        q.push_operando(p[pos], obtener_tipo_variable(p[pos]))
 
-    # revisar que ID y CTE sean del tipo correcto
-    if pos == 2 and tipo not in ('int', 'float'):
-        raise Exception(f"Error semántico: signo unario inválido para {tipo}")
-    
-    # Push el valor y tipo a la pila de operandos y tipos
-    q.push_operando(valor, tipo)
+    # si es + ID o - ID, revisar que el tipo sea numérico
+    if pos == 2:
+        _, tipo = q.top_operando()
+        if tipo not in ('int', 'float'):
+            raise Exception(f"Error semántico: signo unario inválido para {tipo}")
 
     # Resolver la expresión si hay un negativo
     if pos == 2 and p[1] == '-':
@@ -339,6 +338,7 @@ def p_return_statement(p):
             f"Error semántico: la función '{semantic.funcion_actual}' debe retornar {tipo_retorno}, no {tipo}"
         )
 
+    # aquí alguna instrucción sobre qué hacer con el retorno
 
 def p_TERMINO(p):
     '''

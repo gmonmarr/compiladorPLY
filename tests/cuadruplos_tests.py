@@ -12,10 +12,10 @@ class QuadrupleStructureTests(unittest.TestCase):
         q.push_operando("left", "int")
         q.push_operando(2.5, "float")
 
-        self.assertEqual(q.top_operando(), 2.5)
+        self.assertEqual(q.top_operando(), (2.5, "float"))
         self.assertEqual(q.pop_operando(), (2.5, "float"))
         self.assertEqual(q.pop_operando(), ("left", "int"))
-        self.assertEqual(q.pila_tipo, [])
+        self.assertEqual(q.pila_operandos, [])
 
     def test_pop_from_empty_stack_fails(self):
         with self.assertRaisesRegex(Exception, "No hay operandos"):
