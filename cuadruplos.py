@@ -1,4 +1,5 @@
 # cuadruplos.py
+import memoria # manejo de memoria virtual
 
 # queue (Fila) (FIFO)
 cuadruplos = []
@@ -6,33 +7,40 @@ cuadruplos = []
 # Pilas (LIFO)
 pila_operadores = []
 pila_operandos = [] # operandos son tuplas (valor, tipo)
-# pila_tipo = []
-
-temp_cnt = 0
+pila_saltos = []
+pila_llamadas = []  # [nombre de función, número de argumentos procesados]
 
 def limpiar():
-    global temp_cnt
     cuadruplos.clear()
     pila_operadores.clear()
     pila_operandos.clear()
-    temp_cnt = 0
+    pila_saltos.clear()
+    pila_llamadas.clear()
 
-def nuevo_temp():
-    from semantic import directorio_funciones, funcion_actual, tabla_simbolos
-
-    global temp_cnt
-    locales = directorio_funciones.get(funcion_actual, {}).get('variables', {})
-    while True:
-        temp_cnt += 1
-        nombre = f"t{temp_cnt}"
-        if nombre not in tabla_simbolos and nombre not in locales:
-            return nombre
+# nueva variable temporal
+def nuevo_temp(tipo):
+    from semantic import add_temp
+    direccion = memoria.reservar('temporal', tipo)
+    add_temp(direccion, tipo)
+    return direccion
 
 # push de cuádruplo
 def push_cuadruplo(operador, operando1, operando2, resultado):
     cuadruplo = (operador, operando1, operando2, resultado)
     cuadruplos.append(cuadruplo)
     return len(cuadruplos)-1 # retornar index
+
+# llenar el cuárto campo de un cuádruplo (para los Goto y GotoF)
+def rellenar(indice, destino):
+    operador, izquierdo, derecho, _ = cuadruplos[indice]
+    cuadruplos[indice] = (operador, izquierdo, derecho, destino)
+
+# push de GotoF (salto falso)
+def salto_falso():
+    resultado, tipo = pop_operando()
+    if tipo != 'bool':
+        raise Exception("Error semántico: la condición debe ser bool")
+    pila_saltos.append(push_cuadruplo('GotoF', resultado, None, None))
 
 ### OPERANDOS
 # push operando (poner al final)
@@ -73,7 +81,7 @@ def resolver_expresion(operadores):
     input: operadores (list of str) - lista de operadores a resolver
     output: None - genera un cuádruplo y lo agrega a la lista de cuadruplos
     """
-    from semantic import add_temp, oraculo_cubo
+    from semantic import oraculo_cubo
 
     if not pila_operadores or top_operador() not in operadores:
         return
@@ -82,8 +90,7 @@ def resolver_expresion(operadores):
     derecho, tipo_der = pop_operando()
     izquierdo, tipo_izq = pop_operando()
     tipo = oraculo_cubo(tipo_izq, tipo_der, operador)
-    temporal = nuevo_temp()
-    add_temp(temporal, tipo)
+    temporal = nuevo_temp(tipo)
     push_cuadruplo(operador, izquierdo, derecho, temporal)
     push_operando(temporal, tipo)
 
